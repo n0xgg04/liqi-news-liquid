@@ -2,6 +2,12 @@
 
 # dependencies
 node_modules/
+.vscode
+.cursor
+
+build**.ipa
+build**.apk
+build**.aab
 
 # Expo
 .expo/
@@ -40,3 +46,9 @@ yarn-error.*
 *.tsbuildinfo
 
 app-example
+# hot-updater
+.env.hotupdater
+# hot-updater
+.hot-updater/output
+
+.env.local

@@ -13,7 +13,21 @@
     },
     "staging": {
       "distribution": "internal",
-      "releaseChannel": "staging"
+      "releaseChannel": "staging",
+      "env": {
+        "API_URL": "https://staging.api.example.com",
+        "SENTRY_DSN": "https://example-staging@sentry.io/123456",
+        "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_dGVhY2hpbmctcmF0dGxlci0zOS5jbGVyay5hY2NvdW50cy5kZXYk",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://ipqwtswjcvxiuvzlfawz.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_KEY": "sb_publishable_JwM7k5jm2u_pMkeTZjgzzQ_TBLCqXwB",
+        "EXPO_PUBLIC_UPDATE_SERVER": "https://ipqwtswjcvxiuvzlfawz.supabase.co/functions/v1/update-server",
+        "HOT_UPDATER_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwcXd0c3dqY3Z4aXV2emxmYXd6Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1OTY2MDc2MSwiZXhwIjoyMDc1MjM2NzYxfQ.qm7KwMV0o3ig_2GtOi_FeclCwXsnXL-JAQOWCWYdZ7A",
+        "HOT_UPDATER_SUPABASE_BUCKET_NAME": "updater",
+        "HOT_UPDATER_SUPABASE_URL": "https://ipqwtswjcvxiuvzlfawz.supabase.co",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "207043063139-e7b8abdvj3adjscjasputn45jfjg2ucr.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "207043063139-3mril4bo82bu0a6qe32c5mar9qcn9iv7.apps.googleusercontent.com",
+        "SUPABASE_SERVER_ROLE_SECRET_KEY": "sb_secret_koYy2iOtJVmlp-clS3ZS1w_kjmQnKTC"
+      }
     },
     "production": {
       "releaseChannel": "production"

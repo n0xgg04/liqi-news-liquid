@@ -1,13 +1,30 @@
-import { Stack } from "expo-router";
-import React from "react";
+import { Slot } from 'expo-router'
+import React from 'react'
+import { HotUpdater, getUpdateSource } from '@hot-updater/react-native'
+import { AuthProvider, NotificationProvider } from '@/shared/providers'
+import TanstackQueryProvider from '@/shared/providers/TanstackQueryProvider'
+import { KeyboardProvider } from 'react-native-keyboard-controller'
+import AnalysticsProvider from '@/shared/providers/AnalysticsProvider'
 
-export default function RootLayout() {
+import './global.css'
+import HotUpdateProvider from '@/shared/providers/HotUpdate'
+
+function RootLayout() {
   return (
-    <Stack initialRouteName="(public)">
-      <Stack.Screen name="(public)" />
-      <Stack.Protected guard>
-        <Stack.Screen name="(protected)" />
-      </Stack.Protected>
-    </Stack>
-  );
+    <HotUpdateProvider>
+      <AnalysticsProvider>
+        <KeyboardProvider>
+          <TanstackQueryProvider>
+            <AuthProvider>
+              <NotificationProvider>
+                <Slot />
+              </NotificationProvider>
+            </AuthProvider>
+          </TanstackQueryProvider>
+        </KeyboardProvider>
+      </AnalysticsProvider>
+    </HotUpdateProvider>
+  )
 }
+
+export default RootLayout
