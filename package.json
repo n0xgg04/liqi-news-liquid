@@ -12,7 +12,13 @@
     "build:ios:staging": "eas build --platform ios --profile staging",
     "supabase:types": "npx supabase gen types typescript --project-id ipqwtswjcvxiuvzlfawz > ./shared/types/database.types.ts",
     "supabase:deploy:user-firebase-message": "npx supabase functions deploy user-firebase-message",
-    "update:ios": "yarn hot-updater deploy -i --force-update"
+    "supabase:deploy:register-firebase-token": "npx supabase functions deploy register-firebase-token",
+    "supabase:deploy:get-my-post": "npx supabase functions deploy get-my-post",
+    "supabase:deploy:like-post": "npx supabase functions deploy like_post",
+    "supabase:deploy:post-functions": "npx supabase functions deploy get-post-content get-post-likes get-post-comments get-post-user-status create-comment like_post",
+    "supabase:deploy:notification-functions": "npx supabase functions deploy create-notification-event process-notifications get-notifications mark-notification-read",
+    "update:ios": "yarn hot-updater deploy -i --force-update",
+    "postinstall": "sh ./scripts/postinstall.sh"
   },
   "dependencies": {
     "@amplitude/analytics-react-native": "^1.5.16",
@@ -82,10 +88,13 @@
     "react-native-nitro-image": "^0.6.1",
     "react-native-nitro-modules": "^0.30.0",
     "react-native-nitro-web-image": "^0.6.1",
+    "react-native-pager-view": "6.9.1",
     "react-native-reanimated": "~4.1.1",
+    "react-native-reanimated-skeleton": "^1.6.0",
     "react-native-safe-area-context": "~5.6.0",
     "react-native-screens": "~4.16.0",
     "react-native-svg": "15.12.1",
+    "react-native-tab-view": "^4.1.3",
     "react-native-web": "^0.21.0",
     "react-native-webview": "13.15.0",
     "react-native-worklets": "0.5.1",

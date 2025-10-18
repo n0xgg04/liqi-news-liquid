@@ -96,12 +96,9 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       const token = await messaging().getToken()
       setFcmToken(token)
       if (token) {
-        console.log('user?.id', user?.id)
-        getUniqueId().then(async (deviceId) => {
-          fetch('/profile/add-token', {
-            method: 'POST',
-            body: JSON.stringify({ token, device_id: deviceId, user_id: user?.id }),
-          })
+        const deviceId = await getUniqueId()
+        await supabase.functions.invoke('register-firebase-token', {
+          body: { token, device_id: deviceId, user_id: user?.id ?? null },
         })
       }
       return token

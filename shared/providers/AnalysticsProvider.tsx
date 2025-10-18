@@ -7,7 +7,8 @@ Sentry.init({
   tracesSampleRate: 1.0,
   profilesSampleRate: 1.0,
   attachStacktrace: true,
-  debug: true,
+  debug: false,
+  enableLogs: false,
   environment: process.env.EXPO_PUBLIC_ENVIRONMENT,
 })
 

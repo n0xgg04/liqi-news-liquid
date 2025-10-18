@@ -1,22 +1,21 @@
 import HStack from '@/shared/components/base/HStack'
-import LoadingActivity from '@/shared/components/base/LoadingActivity'
 import VStack from '@/shared/components/base/VStack'
 import PostContent from '@/shared/components/home/PostContent'
+import PostSkeleton from '@/shared/components/home/PostSkeleton'
 import { KEYS } from '@/shared/constants/query-keys'
 import { supabase } from '@/shared/libs/supabase'
 import { useAuth } from '@/shared/providers'
 import useLikePost from '@/shared/queries/useLikePost'
-import { Database, Tables } from '@/shared/types/database.types'
 import { formatTimeAgo } from '@/shared/utils/days'
 import { Spacing } from '@/shared/utils/screen/spacing'
 import { Typography } from '@/shared/utils/screen/typography'
 import { useHeaderHeight } from '@react-navigation/elements'
-import { AnimatedFlashList, FlashList } from '@shopify/flash-list'
+import { AnimatedFlashList } from '@shopify/flash-list'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { GlassView } from 'expo-glass-effect'
 import { Image as ExpoImage, Image } from 'expo-image'
-import { Stack, useLocalSearchParams, useNavigation } from 'expo-router'
-import React, { useRef } from 'react'
+import { Stack, useLocalSearchParams } from 'expo-router'
+import React, { useLayoutEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import {
   ActivityIndicator,
@@ -26,26 +25,20 @@ import {
   Pressable,
   ScrollView,
   ScrollViewProps,
-  Text,
   TextInput,
   useWindowDimensions,
   View,
 } from 'react-native'
+import { default as Text } from '@/shared/components/base/Typography'
 import {
   KeyboardAwareScrollView,
-  useKeyboardAnimation,
   useReanimatedKeyboardAnimation,
 } from 'react-native-keyboard-controller'
-import Animated, {
-  FadeInDown,
-  FadeOutDown,
-  useAnimatedReaction,
-  useAnimatedStyle,
-  useSharedValue,
-} from 'react-native-reanimated'
+import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated'
 
 type PostDetailProps = {
   id: string
+  action?: 'open_comment'
 }
 
 const AnimatedGlassView = Animated.createAnimatedComponent(GlassView)
@@ -57,11 +50,12 @@ const MAX_COMMENTS_PER_PAGE = 20
 type GetCommentsReturn = Database['public']['Functions']['get_comments']['Returns'][number]
 
 export default function PostDetail() {
-  const { id } = useLocalSearchParams<PostDetailProps>()
+  const { id, action } = useLocalSearchParams<PostDetailProps>()
   const TOP_HEIGHT = useHeaderHeight()
   const queryClient = useQueryClient()
   const { user } = useAuth()
-
+  const { height: MAX_HEIGHT } = useWindowDimensions()
+  const commentSectionRef = useRef<Text>(null)
   const { height: KEYBOARD_HEIGHT } = useReanimatedKeyboardAnimation()
   const commentInputHeight = useSharedValue<number>(Spacing.SCALE_60)
   const { setValue, handleSubmit, watch } = useForm<CreateCommentData>({
@@ -69,7 +63,7 @@ export default function PostDetail() {
       comment: '',
     },
   })
-
+  const scrollViewRef = useRef<ScrollView>(null)
   const watchedComment = watch('comment')
 
   const glassStyleZ = useAnimatedStyle(() => ({
@@ -82,70 +76,109 @@ export default function PostDetail() {
     minHeight: commentInputHeight.value,
   }))
 
-  const { data: postData, isLoading: isLoadingPostDetail } = useQuery({
-    queryKey: [KEYS.POST_DETAIL, id],
+  const { data: postContentData, isLoading: isLoadingPostContent } = useQuery({
+    queryKey: [KEYS.POST_DETAIL, id, 'content'],
     queryFn: async () => {
-      const { error, data } = await supabase.rpc('get_post_by_id', {
-        p_post_id: id,
+      const { data, error } = await supabase.functions.invoke('get-post-content', {
+        body: { post_id: id },
       })
-      if (!!error) throw error
-      return data
+      if (error) throw error
+      return data.data
     },
     refetchOnReconnect: true,
     refetchOnWindowFocus: true,
-    select: (data) => data?.[0] as unknown as PostContent,
   })
+
+  const { data: postLikesData, isLoading: isLoadingPostLikes } = useQuery({
+    queryKey: [KEYS.POST_DETAIL, id, 'likes'],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke('get-post-likes', {
+        body: { post_id: id },
+      })
+      if (error) throw error
+      return data.data
+    },
+    refetchOnReconnect: true,
+    refetchOnWindowFocus: true,
+  })
+
+  const { data: postCommentsData, isLoading: isLoadingPostComments } = useQuery({
+    queryKey: [KEYS.POST_DETAIL, id, 'comments'],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke('get-post-comments', {
+        body: { post_id: id },
+      })
+      if (error) throw error
+      return data.data
+    },
+    refetchOnReconnect: true,
+    refetchOnWindowFocus: true,
+  })
+
+  const { data: postUserStatusData, isLoading: isLoadingPostUserStatus } = useQuery({
+    queryKey: [KEYS.POST_DETAIL, id, 'user_status'],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke('get-post-user-status', {
+        body: { post_id: id },
+      })
+      if (error) throw error
+      return data.data
+    },
+    refetchOnReconnect: true,
+    refetchOnWindowFocus: true,
+  })
+
+  const postData = React.useMemo(() => {
+    if (!postContentData || !postLikesData || !postCommentsData || !postUserStatusData) return null
+
+    return {
+      ...postContentData,
+      ...postLikesData,
+      ...postCommentsData,
+      ...postUserStatusData,
+    } as PostContent
+  }, [postContentData, postLikesData, postCommentsData, postUserStatusData])
+
+  const isLoadingPostDetail =
+    isLoadingPostContent || isLoadingPostLikes || isLoadingPostComments || isLoadingPostUserStatus
 
   const { mutateAsync: createCommentMutation, isPending: isCreatingComment } = useMutation({
     mutationFn: async (payload: CreateCommentData) => {
       if (payload.comment === '') return
-      const { error, data } = await supabase.from('comments').insert({
-        post_id: id,
-        content: payload.comment,
-        author: user?.id,
+      const { data, error } = await supabase.functions.invoke('create-comment', {
+        body: {
+          post_id: id,
+          content: payload.comment,
+        },
       })
-
-      if (!!error) throw error
-      return data
+      if (error) throw error
+      return data.data
     },
     onSuccess: (data) => {
       setValue('comment', '')
       queryClient.refetchQueries({ queryKey: [KEYS.POST_DETAIL, id, 'comments'] })
+      queryClient.refetchQueries({ queryKey: [KEYS.POST_DETAIL, id, 'comments_count'] })
+      queryClient.refetchQueries({ queryKey: [KEYS.POST_DETAIL, id, 'user_status'] })
     },
     onError: (error) => {
       Alert.alert('Thất bại', error.message)
     },
   })
-  const {
-    isLoading: isLoadingComments,
-    data: commentsData,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteQuery({
+  const { isLoading: isLoadingComments, data: commentsData = [] } = useQuery({
     queryKey: [KEYS.POST_DETAIL, id, 'comments'],
-    queryFn: async ({ pageParam = 0 }) => {
+    queryFn: async () => {
       const { data } = await supabase
         .rpc('get_comments', {
           p_post_id: id,
-          p_page: pageParam,
+          p_page: 0,
           p_per_page: MAX_COMMENTS_PER_PAGE,
         })
         .select()
-      return data
+      console.log('comment', data)
+      return data || []
     },
     staleTime: 0,
-    getNextPageParam: (lastPage, allPages) => {
-      if (lastPage && lastPage?.length === MAX_COMMENTS_PER_PAGE) {
-        return (allPages?.length ?? 0) + 1
-      }
-      return undefined
-    },
-    initialPageParam: 0,
-    select(data) {
-      return data?.pages.flatMap((page) => page ?? [])
-    },
-    enabled: !!postData,
+    enabled: !!id,
   })
 
   const { mutateAsync: likePostMutation } = useLikePost()
@@ -156,11 +189,8 @@ export default function PostDetail() {
   }
 
   const handleOnEndComment = React.useCallback(() => {
-    console.log('End comment')
-    if (hasNextPage) {
-      fetchNextPage()
-    }
-  }, [hasNextPage, fetchNextPage])
+    // Simplified - no infinite loading for now
+  }, [])
 
   const RenderScrollComponent = React.forwardRef<ScrollView, ScrollViewProps>(
     function A(props, ref) {
@@ -172,11 +202,11 @@ export default function PostDetail() {
 
   const onRenderComment: ListRenderItem<GetCommentsReturn> = ({ item, index }) => {
     return (
-      <AnimatedGlassView
+      <View
         style={{
           paddingHorizontal: Spacing.SCALE_15,
           paddingVertical: Spacing.SCALE_15,
-          borderRadius: Spacing.SCALE_10,
+          borderRadius: Spacing.SCALE_15,
         }}
       >
         <HStack spacing={Spacing.SCALE_10}>
@@ -203,13 +233,21 @@ export default function PostDetail() {
                 fontSize: Typography.FONT_SIZE_15,
               }}
             >
-              {item.content}
+              {item?.content}
             </Text>
           </VStack>
         </HStack>
-      </AnimatedGlassView>
+      </View>
     )
   }
+
+  useLayoutEffect(() => {
+    if (action === 'open_comment') {
+      commentSectionRef.current?.measure((_____, y, _, __, ___, ____) => {
+        scrollViewRef.current?.scrollTo({ y: y + MAX_HEIGHT * 0.7, animated: true })
+      })
+    }
+  }, [action, MAX_HEIGHT])
 
   return (
     <>
@@ -219,29 +257,35 @@ export default function PostDetail() {
           paddingTop: TOP_HEIGHT,
           paddingHorizontal: Spacing.SCALE_10,
         }}
+        ref={scrollViewRef}
       >
         <Stack.Screen
           options={{
-            headerTitle: postData?.title,
+            headerTitle: postData?.title ?? 'Loading...',
             headerShown: true,
             headerTransparent: true,
           }}
         />
 
-        <LoadingActivity isLoading={isLoadingPostDetail} />
-
-        <PostContent
-          item={postData as PostContent}
-          handleLike={likePostMutation}
-          handleComment={() => {}}
-          handlePress={() => {}}
-          isFullScreen
-        />
+        {isLoadingPostDetail ? (
+          <PostSkeleton height={MAX_HEIGHT * 0.5} />
+        ) : (
+          <PostContent
+            item={postData as PostContent}
+            handleLike={likePostMutation}
+            handleComment={() => {}}
+            handlePress={() => {}}
+            isFullScreen
+            clickImageBehavior="openGallery"
+          />
+        )}
 
         <View style={{ padding: Spacing.SCALE_10, paddingBottom: Spacing.SCALE_200 }}>
-          <Text className="text-xl font-medium mb-3">Bình luận</Text>
+          <Text ref={commentSectionRef as any} className="text-xl font-medium mb-3">
+            Bình luận
+          </Text>
           <CommentList
-            commentsData={commentsData!}
+            commentsData={commentsData}
             onRenderComment={onRenderComment}
             handleOnEndComment={handleOnEndComment}
             RenderScrollComponent={RenderScrollComponent}
@@ -331,14 +375,23 @@ const CommentList = React.memo(function A({
   RenderScrollComponent,
 }: CommentListProps) {
   return (
-    <AnimatedFlashList
-      data={commentsData}
-      renderItem={onRenderComment as any}
-      showsVerticalScrollIndicator={false}
-      ItemSeparatorComponent={() => <View style={{ height: Spacing.SCALE_10 }} />}
-      onEndReached={handleOnEndComment}
-      onEndReachedThreshold={0.15}
-      renderScrollComponent={RenderScrollComponent}
-    />
+    <GlassView
+      style={{
+        borderRadius: Spacing.SCALE_15,
+        overflow: 'hidden',
+      }}
+    >
+      <AnimatedFlashList
+        style={{
+          backgroundColor: 'white',
+        }}
+        data={commentsData}
+        renderItem={onRenderComment as any}
+        showsVerticalScrollIndicator={false}
+        onEndReached={handleOnEndComment}
+        onEndReachedThreshold={0.15}
+        renderScrollComponent={RenderScrollComponent}
+      />
+    </GlassView>
   )
 })

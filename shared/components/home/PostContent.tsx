@@ -1,9 +1,10 @@
 import { Spacing } from '@/shared/utils/screen/spacing'
 import { GlassView } from 'expo-glass-effect'
-import React, { useEffect } from 'react'
+import React from 'react'
 import VStack from '../base/VStack'
 import HStack from '../base/HStack'
-import { Pressable, Text, useColorScheme } from 'react-native'
+import { Pressable, useColorScheme } from 'react-native'
+import { default as Text } from '../base/Typography'
 import { Typography } from '@/shared/utils/screen/typography'
 import { Image as ExpoImage } from 'expo-image'
 import { Share } from 'react-native'
@@ -19,7 +20,7 @@ import {
 } from '@expo/ui/swift-ui'
 import { frame } from '@expo/ui/swift-ui/modifiers'
 import { cn } from '@/shared/utils/tailwindcss'
-import * as Sentry from '@sentry/react-native'
+import { router } from 'expo-router'
 
 type Props = {
   item: PostContent
@@ -40,12 +41,19 @@ export default function PostContent({
 }: Props) {
   const theme = useColorScheme()
   const isDark = theme === 'dark'
+
   const handleShare = async () => {
+    if (!item) return
     await Share.share({
       url: 'https://www.google.com',
       title: item?.title,
       message: item?.content.slice(0, 100),
     })
+  }
+
+  const handleOpenComment = () => {
+    if (!item) return
+    router.push(`/posts/${item.post_id}?action=open_comment`)
   }
 
   return (
@@ -170,7 +178,7 @@ export default function PostContent({
               <Button
                 modifiers={[frame({ height: 35, width: 70 })]}
                 variant="glass"
-                onPress={() => handleComment(item as PostContent)}
+                onPress={handleOpenComment}
               >
                 <NativeHStack spacing={5}>
                   <NativeImage color="gray" systemName="bubble.left" size={14} />

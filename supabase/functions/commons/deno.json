@@ -1,0 +1,7 @@
+{
+  "imports": {
+    "kysely": "npm:kysely@0.23.4",
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@2",
+    "zod": "npm:zod@3.24.2"
+  }
+}

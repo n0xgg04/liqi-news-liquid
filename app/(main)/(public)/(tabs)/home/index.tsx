@@ -10,10 +10,11 @@ import { Link, Stack, useRouter } from 'expo-router'
 import React, { useOptimistic, useState } from 'react'
 import HStack from '@/shared/components/base/HStack'
 import { AnimatedFlatList } from '@/shared/components/animated'
-import { View, Text, RefreshControl, ActivityIndicator, StatusBar, Alert } from 'react-native'
+import Typography from '@/shared/components/base/Typography'
+import { View, RefreshControl, ActivityIndicator, StatusBar, Alert } from 'react-native'
 import { Spacing } from '@/shared/utils/screen/spacing'
 import VStack from '@/shared/components/base/VStack'
-import { ListRenderItem } from '@shopify/flash-list'
+import { FlashList, ListRenderItem } from '@shopify/flash-list'
 import { background, padding } from '@expo/ui/swift-ui/modifiers'
 import Animated, {
   Extrapolation,
@@ -30,13 +31,14 @@ import { cn } from '@/shared/utils/tailwindcss'
 import PostContent from '@/shared/components/home/PostContent'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import useLikePost from '@/shared/queries/useLikePost'
+import PostSkeleton from '@/shared/components/home/PostSkeleton'
+import usePosts from '@/shared/queries/usePosts'
 
 const AnimatedVStack = Animated.createAnimatedComponent(VStack)
 const MAX_POST_PER_PAGE = 5
 
 export default function HomeScreen() {
   const router = useRouter()
-  const queryClient = useQueryClient()
 
   const {
     data: newFeedData,
@@ -47,30 +49,8 @@ export default function HomeScreen() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useInfiniteQuery({
-    queryKey: [KEYS.NEW_FEED],
-    queryFn: async ({ pageParam = 0 }) => {
-      const { data } = await supabase
-        .rpc('get_post', {
-          page_number: pageParam,
-          per_page: MAX_POST_PER_PAGE,
-        })
-        .select('*')
-        .order('created_at', { ascending: false })
-
-      return data
-    },
-    staleTime: 0,
-    getNextPageParam: (lastPage, allPages) => {
-      if (lastPage && lastPage.length === MAX_POST_PER_PAGE) {
-        return allPages.length + 1
-      }
-      return undefined
-    },
-    initialPageParam: 1,
-    select(data) {
-      return data?.pages.flatMap((page) => page ?? [])
-    },
+  } = usePosts({
+    maxPostPerPage: MAX_POST_PER_PAGE,
   })
 
   const { mutateAsync: likePostMutation } = useLikePost()
@@ -102,7 +82,7 @@ export default function HomeScreen() {
     item,
   }) => {
     return (
-      <Link href={`/posts/${item.post_id}`} asChild>
+      <Link href={`/posts/${index}`} asChild>
         <Link.Trigger>
           <PostContent
             item={item}
@@ -130,20 +110,24 @@ export default function HomeScreen() {
     )
   }
 
+  const renderSkeletons = () => {
+    return <PostSkeleton />
+  }
+
   const renderFooter = () => {
     return (
       <HStack style={{ justifyContent: 'center', alignItems: 'center', padding: Spacing.SCALE_20 }}>
         {isFetchingNextPage ? (
           <ActivityIndicator size="small" />
         ) : (
-          <Text
+          <Typography
             className={cn(
               'text-gray-400 dark:text-[#9ba1a6] font-medium mt-5',
               isLoadingFeed && 'hidden'
             )}
           >
             Bạn đã lướt hết bản tin rồi !!
-          </Text>
+          </Typography>
         )}
       </HStack>
     )
@@ -222,30 +206,46 @@ export default function HomeScreen() {
           </NativeHStack>
         </Host>
       </AnimatedVStack>
-      <LoadingActivity isLoading={isLoadingFeed} />
-      <AnimatedFlatList
-        ListHeaderComponent={renderHeader}
-        data={newFeedData ?? []}
-        contentContainerStyle={{
-          paddingHorizontal: Spacing.SCALE_20,
-          paddingTop: Spacing.SCALE_5,
-          paddingBottom: Spacing.SCALE_20,
-        }}
-        keyExtractor={(item) => (item as PostContent).post_id}
-        showsVerticalScrollIndicator={false}
-        ListFooterComponent={renderFooter}
-        onScroll={scrollHandler}
-        scrollEventThrottle={33}
-        refreshControl={<RefreshControl refreshing={isRefetchingFeed} onRefresh={refetchFeed} />}
-        ItemSeparatorComponent={() => <View style={{ height: Spacing.SCALE_20 }} />}
-        renderItem={renderPosts as ListRenderItem<unknown>}
-        onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.15}
-        maintainVisibleContentPosition={{
-          autoscrollToTopThreshold: 100,
-        }}
-        keyboardShouldPersistTaps="never"
-      />
+
+      {isLoadingFeed ? (
+        <AnimatedFlatList
+          data={Array.from({ length: MAX_POST_PER_PAGE }).map((_, index) => ({}))}
+          renderItem={renderSkeletons as ListRenderItem<unknown>}
+          contentContainerStyle={{
+            paddingHorizontal: Spacing.SCALE_15,
+            paddingTop: Spacing.SCALE_50,
+            paddingBottom: Spacing.SCALE_20,
+          }}
+          ItemSeparatorComponent={() => <View style={{ height: Spacing.SCALE_10 }} />}
+          showsVerticalScrollIndicator={false}
+          onScroll={scrollHandler}
+          keyboardShouldPersistTaps="never"
+        />
+      ) : (
+        <AnimatedFlatList
+          ListHeaderComponent={renderHeader}
+          data={newFeedData ?? []}
+          contentContainerStyle={{
+            paddingHorizontal: Spacing.SCALE_15,
+            paddingTop: Spacing.SCALE_5,
+            paddingBottom: Spacing.SCALE_20,
+          }}
+          keyExtractor={(item) => (item as PostContent).post_id}
+          showsVerticalScrollIndicator={false}
+          ListFooterComponent={renderFooter}
+          onScroll={scrollHandler}
+          scrollEventThrottle={33}
+          refreshControl={<RefreshControl refreshing={isRefetchingFeed} onRefresh={refetchFeed} />}
+          ItemSeparatorComponent={() => <View style={{ height: Spacing.SCALE_10 }} />}
+          renderItem={renderPosts as ListRenderItem<unknown>}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.15}
+          maintainVisibleContentPosition={{
+            autoscrollToTopThreshold: 100,
+          }}
+          keyboardShouldPersistTaps="never"
+        />
+      )}
     </SafeAreaView>
   )
 }

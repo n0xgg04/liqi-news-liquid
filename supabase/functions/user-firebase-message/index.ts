@@ -8,6 +8,7 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
 );
+
 const schema = z.object({
   user_id: z.string().optional(),
   body: z.string(),
@@ -25,7 +26,6 @@ Deno.serve(async (req) => {
       .eq("user_id", user_id)
       .single();
 
-    console.log(data);
     const fcmToken = data?.fcm_token;
     const accessToken = await getAccessToken({
       clientEmail: serviceAccount.client_email,

@@ -3,15 +3,20 @@ import React from 'react'
 import { supabase } from '../libs/supabase'
 import { KEYS } from '../constants/query-keys'
 import { Alert } from 'react-native'
+import { useAuth } from '../providers'
 
 export default function useLikePost() {
+  const { user } = useAuth()
+
   return useMutation({
     mutationFn: async (item: PostContent) => {
-      const { error, data } = await supabase.rpc('toggle_like', {
-        p_post_id: item.post_id,
+      const { data, error } = await supabase.functions.invoke('like_post', {
+        body: {
+          post_id: item.post_id,
+        },
       })
-      if (!!error) throw error
-      return data as { is_liked: boolean; like_count: number }
+      if (error) throw error
+      return data.data as { is_liked: boolean; like_count: number }
     },
     async onMutate(variables, context) {
       await context.client.cancelQueries({ queryKey: [KEYS.NEW_FEED] })
@@ -65,12 +70,16 @@ export default function useLikePost() {
         })
         return { ...old, pages: pages ?? [] } as InfiniteData<PostContent[]>
       })
+
+      if (variables.avatar === user?.user_metadata.avatar_url)
+        context.client.invalidateQueries({ queryKey: [KEYS.MY_POSTS] })
     },
     onError: (error, variables, onMutateResult, context) => {
       context.client.setQueryData<InfiniteData<PostContent[]>>(
         [KEYS.NEW_FEED],
         onMutateResult?.previousData
       )
+      console.log(error)
       Alert.alert('Thất bại', error.message)
     },
   })

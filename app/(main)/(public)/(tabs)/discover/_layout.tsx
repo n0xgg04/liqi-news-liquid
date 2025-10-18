@@ -29,6 +29,12 @@ export default function HomeLayout() {
           ),
         }}
       />
+      <Stack.Screen
+        name="ranking"
+        options={{
+          headerTitle: 'Bảng xếp hạng',
+        }}
+      />
     </Stack>
   )
 }

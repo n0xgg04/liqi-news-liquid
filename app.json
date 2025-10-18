@@ -19,7 +19,8 @@
       "googleServicesFile": "./shared/secrets/GoogleService-Info.plist",
       "entitlements": {
         "aps-environment": "development"
-      }
+      },
+      "associatedDomains": ["applinks:noxaov.vn"]
     },
     "android": {
       "adaptiveIcon": {
@@ -28,10 +29,21 @@
       },
       "edgeToEdgeEnabled": true,
       "package": "com.noxinfinity.nox.liqi.news",
-      "googleServicesFile": "./shared/secrets/google-services.json"
-    },
-    "web": {
-      "output": "server"
+      "googleServicesFile": "./shared/secrets/google-services.json",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "noxaov.vn",
+              "pathPrefix": "/liqi_news"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "plugins": [
       "expo-router",
@@ -44,7 +56,32 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-font",
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./assets/fonts/SF-Pro-Display-Ultralight.otf",
+            "./assets/fonts/SF-Pro-Display-UltralightItalic.otf",
+            "./assets/fonts/SF-Pro-Display-Thin.otf",
+            "./assets/fonts/SF-Pro-Display-ThinItalic.otf",
+            "./assets/fonts/SF-Pro-Display-Light.otf",
+            "./assets/fonts/SF-Pro-Display-LightItalic.otf",
+            "./assets/fonts/SF-Pro-Display-Regular.otf",
+            "./assets/fonts/SF-Pro-Display-RegularItalic.otf",
+            "./assets/fonts/SF-Pro-Display-Medium.otf",
+            "./assets/fonts/SF-Pro-Display-MediumItalic.otf",
+            "./assets/fonts/SF-Pro-Display-Semibold.otf",
+            "./assets/fonts/SF-Pro-Display-SemiboldItalic.otf",
+            "./assets/fonts/SF-Pro-Display-Bold.otf",
+            "./assets/fonts/SF-Pro-Display-BoldItalic.otf",
+            "./assets/fonts/SF-Pro-Display-Heavy.otf",
+            "./assets/fonts/SF-Pro-Display-HeavyItalic.otf",
+            "./assets/fonts/SF-Pro-Display-Black.otf",
+            "./assets/fonts/SF-Pro-Display-BlackItalic.otf",
+            "./assets/fonts/SpaceMono-Regular.ttf"
+          ]
+        }
+      ],
       "expo-web-browser",
       "expo-video",
       [
