@@ -28,23 +28,35 @@ Deno.serve(async (req) => {
 
     const { post_id } = schema.parse(await req.json());
 
+    // Check if user is authenticated (optional for viewing user status)
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { "Content-Type": "application/json" } },
-      );
+    let user = null;
+
+    if (authHeader) {
+      const token = authHeader.replace("Bearer ", "");
+      try {
+        const { data: { user: authUser }, error: authError } = await supabase
+          .auth
+          .getUser(token);
+        if (!authError && authUser) {
+          user = authUser;
+        }
+      } catch (error) {
+        // Ignore invalid token errors - user will be treated as anonymous
+        console.warn("Invalid token for get-post-user-status:", error);
+      }
     }
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      token,
-    );
+    // If no user, return default status
+    if (!user) {
+      const result: PostUserStatus = {
+        is_liked: false,
+        is_commented: false,
+      };
 
-    if (authError || !user) {
       return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { "Content-Type": "application/json" } },
+        JSON.stringify({ data: result }),
+        { headers: { "Content-Type": "application/json" } },
       );
     }
 
@@ -68,7 +80,7 @@ Deno.serve(async (req) => {
       {
         global: {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${authHeader?.replace("Bearer ", "")}`,
           },
         },
       },

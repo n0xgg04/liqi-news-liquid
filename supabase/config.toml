@@ -379,3 +379,39 @@ enabled = true
 verify_jwt = true
 import_map = "./functions/commons/deno.json"
 entrypoint = "./functions/get-my-post/index.ts"
+
+[functions.get-post-content]
+enabled = true
+verify_jwt = false
+import_map = "./functions/get-post-content/deno.json"
+entrypoint = "./functions/get-post-content/index.ts"
+
+[functions.get-post-likes]
+enabled = true
+verify_jwt = false
+import_map = "./functions/get-post-likes/deno.json"
+entrypoint = "./functions/get-post-likes/index.ts"
+
+[functions.get-post-comments]
+enabled = true
+verify_jwt = false
+import_map = "./functions/get-post-comments/deno.json"
+entrypoint = "./functions/get-post-comments/index.ts"
+
+[functions.get-post-user-status]
+enabled = true
+verify_jwt = false
+import_map = "./functions/get-post-user-status/deno.json"
+entrypoint = "./functions/get-post-user-status/index.ts"
+
+[functions.create-comment]
+enabled = true
+verify_jwt = true
+import_map = "./functions/create-comment/deno.json"
+entrypoint = "./functions/create-comment/index.ts"
+
+[functions.like_post]
+enabled = true
+verify_jwt = true
+import_map = "./functions/like_post/deno.json"
+entrypoint = "./functions/like_post/index.ts"

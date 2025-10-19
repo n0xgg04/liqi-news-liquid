@@ -1,9 +1,6 @@
-import { Host, Text } from '@expo/ui/swift-ui'
+import { Redirect } from 'expo-router'
+import React from 'react'
 
-export default function Page() {
-  return (
-    <Host matchContents>
-      <Text>Home</Text>
-    </Host>
-  )
+export default function HomeScreen() {
+  return <Redirect href="/(main)/(public)/(tabs)/home" />
 }

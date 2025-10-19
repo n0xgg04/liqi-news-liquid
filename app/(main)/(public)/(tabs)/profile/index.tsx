@@ -23,7 +23,7 @@ import { fonts } from '@/shared/constants/fonts'
 import UserTabSection from '@/shared/components/profile/UserTabSection'
 
 export default function AppContent() {
-  const { user, signInWithApple, signOut, isLoading } = useAuth()
+  const { user, signInWithGoogle, signOut, isLoading } = useAuth()
   const router = useRouter()
   const { fcmToken } = useNotification()
   const avatarImageRef = useRef<ExpoImage>(null)
@@ -129,24 +129,30 @@ export default function AppContent() {
           }}
           onPress={handleOnClickEditProfile}
         >
-          <GlassView
-            isInteractive
-            style={{
-              width: Spacing.SCALE_70,
-              paddingHorizontal: Spacing.SCALE_5,
-              paddingVertical: Spacing.SCALE_8,
-              borderRadius: 999,
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexDirection: 'row',
-              gap: Spacing.SCALE_5,
-              display: 'flex',
-              backgroundColor: 'rgba(255, 255, 255, 0.5)',
-            }}
-          >
-            <Feather name="edit-2" size={Spacing.SCALE_14} color="black" />
-            <RNText className="text-md font-medium">Sửa</RNText>
-          </GlassView>
+          {user ? (
+            <GlassView
+              isInteractive
+              style={{
+                width: Spacing.SCALE_70,
+                paddingHorizontal: Spacing.SCALE_5,
+                paddingVertical: Spacing.SCALE_8,
+                borderRadius: 999,
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'row',
+                gap: Spacing.SCALE_5,
+                display: 'flex',
+                backgroundColor: 'rgba(255, 255, 255, 0.5)',
+              }}
+            >
+              <Feather name="edit-2" size={Spacing.SCALE_14} color="black" />
+              <RNText className="text-md font-medium">Sửa</RNText>
+            </GlassView>
+          ) : (
+            <Pressable onPress={signInWithGoogle}>
+              <RNText>Đăng nhập</RNText>
+            </Pressable>
+          )}
         </Pressable>
         <VStack
           style={{

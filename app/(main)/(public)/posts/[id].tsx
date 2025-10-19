@@ -1,49 +1,30 @@
-import HStack from '@/shared/components/base/HStack'
-import VStack from '@/shared/components/base/VStack'
 import PostContent from '@/shared/components/home/PostContent'
 import PostSkeleton from '@/shared/components/home/PostSkeleton'
 import { KEYS } from '@/shared/constants/query-keys'
 import { supabase } from '@/shared/libs/supabase'
-import { useAuth } from '@/shared/providers'
 import useLikePost from '@/shared/queries/useLikePost'
-import { formatTimeAgo } from '@/shared/utils/days'
 import { Spacing } from '@/shared/utils/screen/spacing'
-import { Typography } from '@/shared/utils/screen/typography'
 import { useHeaderHeight } from '@react-navigation/elements'
 import { AnimatedFlashList } from '@shopify/flash-list'
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { GlassView } from 'expo-glass-effect'
-import { Image as ExpoImage, Image } from 'expo-image'
 import { Stack, useLocalSearchParams } from 'expo-router'
 import React, { useLayoutEffect, useRef } from 'react'
-import { useForm } from 'react-hook-form'
 import {
-  ActivityIndicator,
-  Alert,
   ListRenderItem,
-  Platform,
-  Pressable,
   ScrollView,
   ScrollViewProps,
-  TextInput,
   useWindowDimensions,
   View,
 } from 'react-native'
 import { default as Text } from '@/shared/components/base/Typography'
-import {
-  KeyboardAwareScrollView,
-  useReanimatedKeyboardAnimation,
-} from 'react-native-keyboard-controller'
-import Animated, { useAnimatedStyle, useSharedValue } from 'react-native-reanimated'
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller'
+import CommentItem from '@/shared/components/home/CommentItem'
+import CommentInput from '@/shared/components/home/CommentInput'
 
 type PostDetailProps = {
   id: string
   action?: 'open_comment'
-}
-
-const AnimatedGlassView = Animated.createAnimatedComponent(GlassView)
-type CreateCommentData = {
-  comment: string
 }
 
 const MAX_COMMENTS_PER_PAGE = 20
@@ -52,29 +33,9 @@ type GetCommentsReturn = Database['public']['Functions']['get_comments']['Return
 export default function PostDetail() {
   const { id, action } = useLocalSearchParams<PostDetailProps>()
   const TOP_HEIGHT = useHeaderHeight()
-  const queryClient = useQueryClient()
-  const { user } = useAuth()
   const { height: MAX_HEIGHT } = useWindowDimensions()
-  const commentSectionRef = useRef<Text>(null)
-  const { height: KEYBOARD_HEIGHT } = useReanimatedKeyboardAnimation()
-  const commentInputHeight = useSharedValue<number>(Spacing.SCALE_60)
-  const { setValue, handleSubmit, watch } = useForm<CreateCommentData>({
-    defaultValues: {
-      comment: '',
-    },
-  })
+  const commentSectionRef = useRef<View>(null)
   const scrollViewRef = useRef<ScrollView>(null)
-  const watchedComment = watch('comment')
-
-  const glassStyleZ = useAnimatedStyle(() => ({
-    transform: [
-      {
-        translateY:
-          KEYBOARD_HEIGHT.value < 0 ? KEYBOARD_HEIGHT.value - Spacing.SCALE_10 : -Spacing.SCALE_20,
-      },
-    ],
-    minHeight: commentInputHeight.value,
-  }))
 
   const { data: postContentData, isLoading: isLoadingPostContent } = useQuery({
     queryKey: [KEYS.POST_DETAIL, id, 'content'],
@@ -142,28 +103,6 @@ export default function PostDetail() {
   const isLoadingPostDetail =
     isLoadingPostContent || isLoadingPostLikes || isLoadingPostComments || isLoadingPostUserStatus
 
-  const { mutateAsync: createCommentMutation, isPending: isCreatingComment } = useMutation({
-    mutationFn: async (payload: CreateCommentData) => {
-      if (payload.comment === '') return
-      const { data, error } = await supabase.functions.invoke('create-comment', {
-        body: {
-          post_id: id,
-          content: payload.comment,
-        },
-      })
-      if (error) throw error
-      return data.data
-    },
-    onSuccess: (data) => {
-      setValue('comment', '')
-      queryClient.refetchQueries({ queryKey: [KEYS.POST_DETAIL, id, 'comments'] })
-      queryClient.refetchQueries({ queryKey: [KEYS.POST_DETAIL, id, 'comments_count'] })
-      queryClient.refetchQueries({ queryKey: [KEYS.POST_DETAIL, id, 'user_status'] })
-    },
-    onError: (error) => {
-      Alert.alert('Thất bại', error.message)
-    },
-  })
   const { isLoading: isLoadingComments, data: commentsData = [] } = useQuery({
     queryKey: [KEYS.POST_DETAIL, id, 'comments'],
     queryFn: async () => {
@@ -182,11 +121,6 @@ export default function PostDetail() {
   })
 
   const { mutateAsync: likePostMutation } = useLikePost()
-  const { width: WINDOW_WIDTH } = useWindowDimensions()
-
-  const handleSendComment = () => {
-    handleSubmit((data) => createCommentMutation(data))()
-  }
 
   const handleOnEndComment = React.useCallback(() => {
     // Simplified - no infinite loading for now
@@ -201,44 +135,7 @@ export default function PostDetail() {
   )
 
   const onRenderComment: ListRenderItem<GetCommentsReturn> = ({ item, index }) => {
-    return (
-      <View
-        style={{
-          paddingHorizontal: Spacing.SCALE_15,
-          paddingVertical: Spacing.SCALE_15,
-          borderRadius: Spacing.SCALE_15,
-        }}
-      >
-        <HStack spacing={Spacing.SCALE_10}>
-          <Image
-            source={{ uri: item.author_avatar }}
-            style={{ width: Spacing.SCALE_30, height: Spacing.SCALE_30, borderRadius: 100 }}
-          />
-          <VStack spacing={Spacing.SCALE_2}>
-            <HStack
-              spacing={Spacing.SCALE_5}
-              style={{
-                alignItems: 'center',
-              }}
-            >
-              <Text style={{ fontSize: Typography.FONT_SIZE_14, fontWeight: 'bold' }}>
-                {item.author_name}
-              </Text>
-              <Text style={{ fontSize: Typography.FONT_SIZE_12, color: 'gray' }}>
-                {formatTimeAgo(item.created_at)}
-              </Text>
-            </HStack>
-            <Text
-              style={{
-                fontSize: Typography.FONT_SIZE_15,
-              }}
-            >
-              {item?.content}
-            </Text>
-          </VStack>
-        </HStack>
-      </View>
-    )
+    return <CommentItem item={item} />
   }
 
   useLayoutEffect(() => {
@@ -292,69 +189,7 @@ export default function PostDetail() {
           />
         </View>
       </ScrollView>
-      <AnimatedGlassView
-        style={[
-          {
-            borderRadius: Spacing.SCALE_30,
-            position: 'absolute',
-            zIndex: 999,
-            bottom: 0,
-            left: Spacing.SCALE_10,
-            right: Spacing.SCALE_10,
-            width: WINDOW_WIDTH - Spacing.SCALE_20,
-          },
-          glassStyleZ,
-        ]}
-        isInteractive
-      >
-        <HStack
-          style={{
-            alignItems: 'center',
-          }}
-          spacing={Spacing.SCALE_10}
-        >
-          <View style={{ padding: Spacing.SCALE_10 }}>
-            <ExpoImage
-              source={{ uri: user?.user_metadata.avatar_url }}
-              style={{
-                width: Spacing.SCALE_40,
-                height: Spacing.SCALE_40,
-                borderRadius: 100,
-                overflow: 'hidden',
-              }}
-            />
-          </View>
-          <TextInput
-            value={watchedComment}
-            style={{
-              flexGrow: 1,
-              fontSize: Typography.FONT_SIZE_15,
-              textAlignVertical: 'center',
-              paddingVertical: Platform.OS === 'ios' ? 20 : 10,
-            }}
-            onChangeText={(text) => setValue('comment', text)}
-            placeholder="Nhập bình luận..."
-            editable={!isCreatingComment}
-            multiline
-            onContentSizeChange={(e) => {
-              commentInputHeight.value = e.nativeEvent.contentSize.height
-            }}
-            spellCheck
-          />
-          <Pressable onPress={handleSendComment} disabled={isCreatingComment}>
-            <GlassView
-              style={{
-                width: Spacing.SCALE_40,
-                height: Spacing.SCALE_40,
-                borderRadius: 100,
-                margin: Spacing.SCALE_10,
-              }}
-            >
-              {isCreatingComment ? <ActivityIndicator size="small" color="white" /> : null}
-            </GlassView>
-          </Pressable>
-        </HStack>
-      </AnimatedGlassView>
+      <CommentInput id={id as string} />
     </>
   )
 }

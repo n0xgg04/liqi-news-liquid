@@ -28,24 +28,23 @@ Deno.serve(async (req) => {
 
     const { post_id } = schema.parse(await req.json());
 
+    // Check if user is authenticated (optional for viewing likes)
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { "Content-Type": "application/json" } },
-      );
-    }
+    let user = null;
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      token,
-    );
-
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { "Content-Type": "application/json" } },
-      );
+    if (authHeader) {
+      const token = authHeader.replace("Bearer ", "");
+      try {
+        const { data: { user: authUser }, error: authError } = await supabase
+          .auth
+          .getUser(token);
+        if (!authError && authUser) {
+          user = authUser;
+        }
+      } catch (error) {
+        // Ignore invalid token errors - user will be treated as anonymous
+        console.warn("Invalid token for get-post-likes:", error);
+      }
     }
 
     const cacheKey = `post_likes:${post_id}`;
@@ -62,36 +61,45 @@ Deno.serve(async (req) => {
       console.warn("Cache read error:", cacheError);
     }
 
-    const userSupabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${token}`,
+    // Get like count (always available)
+    const { data: summaryData, error: summaryError } = await supabase
+      .from("post_summary")
+      .select("like_count")
+      .eq("post_id", post_id)
+      .single();
+
+    if (summaryError) {
+      throw summaryError;
+    }
+
+    // Check if user liked (only if authenticated)
+    let isLiked = false;
+    if (user) {
+      const userSupabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        {
+          global: {
+            headers: {
+              Authorization: `Bearer ${authHeader?.replace("Bearer ", "")}`,
+            },
           },
         },
-      },
-    );
+      );
 
-    const [summaryResult, likeResult] = await Promise.all([
-      supabase
-        .from("post_summary")
-        .select("like_count")
-        .eq("post_id", post_id)
-        .single(),
-
-      userSupabase
+      const { data: likeData } = await userSupabase
         .from("likes")
         .select("user_id")
         .eq("post_id", post_id)
         .eq("user_id", user.id)
-        .single(),
-    ]);
+        .single();
+
+      isLiked = !!likeData;
+    }
 
     const result: PostLikes = {
-      like_count: summaryResult.data?.like_count || 0,
-      is_liked: !!likeResult.data,
+      like_count: summaryData?.like_count || 0,
+      is_liked: isLiked,
     };
 
     try {

@@ -28,24 +28,23 @@ Deno.serve(async (req) => {
 
     const { post_id } = schema.parse(await req.json());
 
+    // Check if user is authenticated (optional for viewing comments)
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { "Content-Type": "application/json" } },
-      );
-    }
+    let user = null;
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      token,
-    );
-
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { "Content-Type": "application/json" } },
-      );
+    if (authHeader) {
+      const token = authHeader.replace("Bearer ", "");
+      try {
+        const { data: { user: authUser }, error: authError } = await supabase
+          .auth
+          .getUser(token);
+        if (!authError && authUser) {
+          user = authUser;
+        }
+      } catch (error) {
+        // Ignore invalid token errors - user will be treated as anonymous
+        console.warn("Invalid token for get-post-comments:", error);
+      }
     }
 
     const cacheKey = `post_comments:${post_id}`;
@@ -62,36 +61,45 @@ Deno.serve(async (req) => {
       console.warn("Cache read error:", cacheError);
     }
 
-    const userSupabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${token}`,
+    // Get comment count (always available)
+    const { data: summaryData, error: summaryError } = await supabase
+      .from("post_summary")
+      .select("comment_count")
+      .eq("post_id", post_id)
+      .single();
+
+    if (summaryError) {
+      throw summaryError;
+    }
+
+    // Check if user commented (only if authenticated)
+    let isCommented = false;
+    if (user) {
+      const userSupabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        {
+          global: {
+            headers: {
+              Authorization: `Bearer ${authHeader?.replace("Bearer ", "")}`,
+            },
           },
         },
-      },
-    );
+      );
 
-    const [summaryResult, commentResult] = await Promise.all([
-      supabase
-        .from("post_summary")
-        .select("comment_count")
-        .eq("post_id", post_id)
-        .single(),
-
-      userSupabase
+      const { data: commentData } = await userSupabase
         .from("comments")
         .select("author")
         .eq("post_id", post_id)
         .eq("author", user.id)
-        .single(),
-    ]);
+        .single();
+
+      isCommented = !!commentData;
+    }
 
     const result: PostComments = {
-      comment_count: summaryResult.data?.comment_count || 0,
-      is_commented: !!commentResult.data,
+      comment_count: summaryData?.comment_count || 0,
+      is_commented: isCommented,
     };
 
     try {

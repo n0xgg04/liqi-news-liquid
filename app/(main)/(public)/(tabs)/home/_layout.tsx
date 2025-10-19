@@ -1,7 +1,6 @@
-import ContextMenuProfile from '@/components/ContextMenu.ios'
 import { isLiquidGlassAvailable } from 'expo-glass-effect'
 import { Stack } from 'expo-router'
-import { useColorScheme } from 'react-native'
+import { Platform, useColorScheme } from 'react-native'
 
 export default function HomeLayout() {
   const rawTheme = useColorScheme()
@@ -10,7 +9,15 @@ export default function HomeLayout() {
   const blurEffect = theme === 'dark' ? 'systemMaterialDark' : 'systemMaterialLight'
 
   return (
-    <Stack>
+    <Stack
+      screenOptions={{
+        animation: 'slide_from_left',
+        headerShown: Platform.select({
+          ios: true,
+          default: false,
+        }),
+      }}
+    >
       <Stack.Screen
         name="index"
         options={{
@@ -19,6 +26,7 @@ export default function HomeLayout() {
           headerTintColor: theme === 'dark' ? 'white' : 'black',
           headerLargeStyle: { backgroundColor: 'transparent' },
           headerBlurEffect: isGlassAvailable ? undefined : blurEffect,
+          animation: 'slide_from_left',
         }}
       />
       <Stack.Screen

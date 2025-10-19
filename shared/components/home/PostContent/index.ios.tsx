@@ -1,16 +1,15 @@
 import { Spacing } from '@/shared/utils/screen/spacing'
 import { GlassView } from 'expo-glass-effect'
 import React from 'react'
-import VStack from '../base/VStack'
-import HStack from '../base/HStack'
-import { Pressable, useColorScheme } from 'react-native'
-import { default as Text } from '../base/Typography'
+import VStack from '../../base/VStack'
+import HStack from '../../base/HStack'
+import { Pressable, useColorScheme, Share } from 'react-native'
+import { default as Text } from '../../base/Typography'
 import { Typography } from '@/shared/utils/screen/typography'
 import { Image as ExpoImage } from 'expo-image'
-import { Share } from 'react-native'
 
 import { formatTimeAgo } from '@/shared/utils/days'
-import PostImages from './PostImages'
+import PostImages from './../PostImages'
 import {
   Host,
   Button,
@@ -21,15 +20,7 @@ import {
 import { frame } from '@expo/ui/swift-ui/modifiers'
 import { cn } from '@/shared/utils/tailwindcss'
 import { router } from 'expo-router'
-
-type Props = {
-  item: PostContent
-  handleLike: (item: PostContent) => void
-  handleComment: (item: PostContent) => void
-  handlePress: (item: PostContent) => void
-  isFullScreen?: boolean
-  clickImageBehavior: 'openPost' | 'openGallery'
-}
+import { Props } from './index.type'
 
 export default function PostContent({
   item,
