@@ -17,6 +17,7 @@
     "supabase:deploy:like-post": "npx supabase functions deploy like_post",
     "supabase:deploy:post-functions": "npx supabase functions deploy get-post-content get-post-likes get-post-comments get-post-user-status create-comment like_post",
     "supabase:deploy:notification-functions": "npx supabase functions deploy create-notification-event process-notifications get-notifications mark-notification-read",
+    "supabase:deploy:eas-webhook": "npx supabase functions deploy eas-webhook",
     "update:ios": "yarn hot-updater deploy -i --force-update",
     "postinstall": "sh ./scripts/postinstall.sh",
     "eas:pull-env": "eas env:pull --environment development"

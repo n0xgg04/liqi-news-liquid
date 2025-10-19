@@ -24,7 +24,11 @@
   },
   "submit": {
     "production": {},
-    "staging": {},
+    "staging": {
+      "ios": {
+        "ascAppId": "your-app-store-connect-app-id"
+      }
+    },
     "dev": {}
   }
 }

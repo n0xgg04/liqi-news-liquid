@@ -415,3 +415,9 @@ enabled = true
 verify_jwt = true
 import_map = "./functions/like_post/deno.json"
 entrypoint = "./functions/like_post/index.ts"
+
+[functions.eas-webhook]
+enabled = true
+verify_jwt = false
+import_map = "./functions/eas-webhook/deno.json"
+entrypoint = "./functions/eas-webhook/index.ts"
