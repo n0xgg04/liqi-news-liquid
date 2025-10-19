@@ -20,7 +20,8 @@
     "supabase:deploy:eas-webhook": "npx supabase functions deploy eas-webhook",
     "update:ios": "yarn hot-updater deploy -i --force-update",
     "postinstall": "sh ./scripts/postinstall.sh",
-    "eas:pull-env": "eas env:pull --environment development"
+    "eas:pull-env": "eas env:pull --environment development",
+    "prepare": "husky"
   },
   "dependencies": {
     "@amplitude/analytics-react-native": "^1.5.16",
@@ -117,6 +118,7 @@
     "eslint-config-expo": "10.0.1-canary-20251009-9919e08",
     "eslint-plugin-react-compiler": "^19.1.0-rc.2",
     "hot-updater": "^0.20.12",
+    "husky": "^9.1.7",
     "postcss": "^8.5.6",
     "prettier-plugin-tailwindcss": "0.5.11",
     "tailwindcss": "3.4.17",
